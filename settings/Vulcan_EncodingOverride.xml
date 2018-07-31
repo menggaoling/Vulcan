@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<userOverrides>
+  <override>
+    <path>E:\Johnson Project\Vulcan\Software\Vulcan\SourceCode\LCB_Support.c</path>
+    <encoding>System</encoding>
+  </override>
+  <override>
+    <path>E:\Johnson Project\Vulcan\Software\Vulcan\SourceCode\inc\General.h</path>
+    <encoding>System</encoding>
+  </override>
+  <override>
+    <path>E:\Johnson Project\Vulcan\Software\Vulcan\SourceCode\inc\KeyFunction.h</path>
+    <encoding>System</encoding>
+  </override>
+</userOverrides>
+
+
