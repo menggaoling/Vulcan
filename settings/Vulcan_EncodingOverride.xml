@@ -2,6 +2,10 @@
 
 <userOverrides>
   <override>
+    <path>E:\Johnson Project\Vulcan\Software\Vulcan\SourceCode\HRM8700.c</path>
+    <encoding>System</encoding>
+  </override>
+  <override>
     <path>E:\Johnson Project\Vulcan\Software\Vulcan\SourceCode\LCB_Support.c</path>
     <encoding>System</encoding>
   </override>

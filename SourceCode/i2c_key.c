@@ -138,7 +138,7 @@ static uint8_t i2cReceiveByte(void)
 void i2cInit(void)
 {    
     HAL_GPIO_WritePin(GPIOD,GPIO_PIN_10,GPIO_PIN_RESET);
-    for(char i = 0;i< 30;i++);
+    for(uint8_t i = 0;i< 30;i++);
     HAL_GPIO_WritePin(GPIOD,GPIO_PIN_10,GPIO_PIN_SET);
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_SET);
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_SET);

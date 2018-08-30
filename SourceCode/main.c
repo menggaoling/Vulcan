@@ -34,7 +34,7 @@
 #include  "wifi_interface.h"
 //
 #include "Show_Functions.h"
-#define InclineLCB
+
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
@@ -465,7 +465,7 @@ void ucb_main(void)
       time.Seconds=0x00;
       time.Minutes=0x00;
       time.Hours=0x10;
-      time.Year=0x15;
+      time.Year=0x18;
       time.Month=0x01;
       time.Date=0x01;
       time.Day=0x07;
@@ -603,7 +603,8 @@ void ucb_main(void)
   bit.CanUpdateSoftware=0;
   bit.CanUpdateSoftwareStare=0;
   // end v2.1-13
-  while(1)
+  //HRM_Init();
+  while(1)//{HRM_State_Machine();}
   {
       switch(by_Address)
       {
