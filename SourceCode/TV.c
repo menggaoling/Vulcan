@@ -301,7 +301,7 @@ void TV_UartTxRx_Information(void)
         else
         {
             /* Write one byte to the transmit data register */
-            huart4.Instance->DR = (TV_ComBuffer[by_TV_TXEnd][by_TV_TXByte]) & 0xFF;
+            huart4.Instance->DR = (TV_ComBuffer[by_TV_TXEnd][by_TV_TXByte] & 0xFF);
             by_TV_TXByte++;
         }
     }
@@ -310,7 +310,7 @@ void TV_UartTxRx_Information(void)
         /* Clear the USART1 Receive interrupt */
         __HAL_UART_CLEAR_FLAG(&huart4, UART_FLAG_RXNE);
         /* Read one byte from the receive data register */
-        TV_RXBuffer[by_TV_RX] = (uint8_t)(huart4.Instance->DR & (uint16_t)0x00FF);
+        TV_RXBuffer[by_TV_RX] = (uint8_t)(huart4.Instance->DR & 0x00FF);
         
         if(TV.RX)
         {           

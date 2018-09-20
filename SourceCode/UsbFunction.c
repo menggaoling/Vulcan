@@ -944,11 +944,10 @@ void UsbFunction_USB(unsigned int by_D)
   {
       pmgr_pcd_task();//==> USB侦测用
       usbh_transfer_task();//==> USB侦测用
-      CheckTime = 0 ;      
+      CheckTime = 0 ;
   }
   if( Boot_CheckPenDriverPlunin() == _USBPlugin_ )
-  {for(unsigned int i = 0;i< 200000;i++);
-    HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_0);
+  {
       USBErrorCount =  0;     // Add by Kunlung 20110125
       if(USB_Status == 0) BEEP_Proce(2,2,2);//==>插入后毕一声
       USB_Status = 1;//==>插入  

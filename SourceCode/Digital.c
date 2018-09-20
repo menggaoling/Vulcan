@@ -10,7 +10,6 @@
 u16 MCBVersion;       //==>MCB版本
 u16 InclineLocation=0;  //==>升降准位
 u16 MotorRpm;         //==>马达速度
-u16 ErrorCode_Hold;
 u16 eSTOP_Time=0;
 u16 by_Delay=0;//==>自动封包回传时间计数
 u16 by_DigitalSpeedTarget=0;//==>目标速度追赶用
@@ -55,6 +54,8 @@ u8 _RunningCommand;
 u8 _InclineCheckAgainDelayTime;
 
 u8 by_InUserModeMotoSafeTime = InUserMotoCheckTime;// 马达稳定时间
+u16 _InclinePercentOld = 1;// 因为归零为0%,所以不能设为零
+u16 _DisplayErrorCode = 0;
 u8 by_NonInUserTime = 0;
 u8 Digital_CeckNonInUser = 0;
 
@@ -80,7 +81,6 @@ struct
    unsigned SpeedStart    : 1;// 当设定速度时
    unsigned DaughterBoardReset : 1;
    unsigned SAFE_Key      : 1;
-   unsigned VersionStatus : 1;
    unsigned InclineStop   : 1; 
    unsigned Insert        : 1;// 指令插件
    unsigned InsertSend    : 1;// 插件指令开始传送
@@ -88,62 +88,9 @@ struct
    unsigned CommandStart : 1;
    unsigned Stop : 1;         // 跑带停止
    unsigned InclineStopCheck : 1;
+   unsigned VersionCheck  : 1;// 控制器软件版本确认
    }Digital;
 
-
-/*
-struct
-{
-  unsigned char by_TX;// 信息传出时的位置指针
-  unsigned char by_TX_Target;// Command持续放入暂存位置
-  unsigned char by_TX_Hold;// 插件前的暂存
-  unsigned char by_TX_Insert;// 插件command放入位置
-  unsigned char by_TX_Byte;// 传输位数
-  unsigned char by_RX;// 接收信息处理暂存区位置指针
-  unsigned char by_ErrorTime;// 封包回传时间计数
-  unsigned char by_Status;// 封包回传状态
-  unsigned char by_Command;// 指令
-  unsigned char by_RX_ReturnTime;// 数据接收是否结束时间计数
-  unsigned char by_TX_ConnectDelay;
-  unsigned char by_Error;// 避免没接线材而持续作累计用 (网络失效的侦测部份)
-  unsigned char by_ErrorCommandSum;// 不支持或错误的 command 重传次数计数
-  unsigned char MachineType;// 机型(下板型号)
-  unsigned char by_GetDkip;
-  unsigned char by_CheckInUser;
-  unsigned char by_CheckInUserTimeNumber;
-  unsigned char _ErrorCodeTarget;// 错误码储存位数
-  unsigned char _MotorStopTime;
-  unsigned char by_GetADC_Delay=0;
-  unsigned char _CheckRpmStopTime;
-  unsigned char _RunningCommand;
-  unsigned char _InclineCheckAgainDelayTime;
-  unsigned char RX_Buffer[35];// 信息取得暂存
-  unsigned char TX_Buffer[25][20];// 信息传出暂存,20组command,5组插件用
- 
-  unsigned short MCBVersion;// MCB版本
-  unsigned short InclineLocation;// 升降准位
-  unsigned short MotorRpm;// 马达速度
-  unsigned short ErrorCode_Hold;
-  unsigned short eSTOP_Time;
-  unsigned short by_Delay;// 自动封包回传时间计数
-  unsigned short by_DigitalSpeedTarget;// 目标速度追赶用
-  unsigned short by_TargetSpeedDelay;// 速度加速率的延迟用
-  unsigned short by_ElevationOld;// 旧升降目标值
-  unsigned short _CheckElevationCommandAD;
-  unsigned short by_Freq;
-  unsigned short by_Current;
-  unsigned short by_OutputVolt;
-  unsigned short by_DC_BusVolt;
-  unsigned short by_IGBT_Temp;
-  unsigned short ErrorCode;// 错误码
-  unsigned short Console_SpeedRPM;
-  unsigned short _InclineProtectionDelay; 
-  unsigned short _InclineStopCheckTime;
-  unsigned short by_TargetDelay;
-  unsigned short _ErrorCodeBuffer[5];// 错误码暂存
-
-}DigitalData;
-*/
 /*******************************************************************************
 * Function Name  : Digital_ErrorCodeUpdate
 * Description    : 储存前的错误码更新排序
@@ -151,7 +98,7 @@ struct
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void Digital_ErroeCodeUpdate(void)
+void Digital_ErrorCodeUpdate(void)
 {
   u8 i;
   if(_ErrorCodeTarget != 0)
@@ -195,16 +142,6 @@ void Digital_ErrorCode_ChangToAddress(void)
           if(Digtial_ErrorCode_Level(ErrorCode) == 1)
           {//==>Class C
               //BLX_Command(MAS_Error_Code,0);
-              /*
-              if( Console_GetAM_Status() == 1 ) // WIFI
-              #ifdef WiFi_Module
-                  UsbFunction_SaveWorkoutDataToWiFiAM(1) ; //错误时须回传错误的数据封包
-              #endif
-              else if( Console_GetAM_Status() == 0 ) // RF
-              #ifdef  RF_AM
-                  BLX_Command(MAS_Error_Code,0);    
-              #endif 
-              */
           }
           i = 200;
           _ErrorCodeTarget+=1;
@@ -220,16 +157,6 @@ void Digital_ErrorCode_ChangToAddress(void)
       if(Digtial_ErrorCode_Level(ErrorCode) == 1)
       {//==>Class C
           //BLX_Command(MAS_Error_Code,0);
-          /*
-          if( Console_GetAM_Status() == 1 ) // WIFI
-          #ifdef WiFi_Module
-              UsbFunction_SaveWorkoutDataToWiFiAM(1) ; //错误时须回传错误的数据封包
-          #endif
-          else if( Console_GetAM_Status() == 0 ) // RF
-          #ifdef  RF_AM
-              BLX_Command(MAS_Error_Code,0);    
-          #endif
-          */
       }
       _ErrorCodeTarget+=1;
   }
@@ -243,18 +170,28 @@ void Digital_ErrorCode_ChangToAddress(void)
 *******************************************************************************/
 u8 Digital_CheckClassCError(void)
 {
-  u8 by_Out = 0;
   u8 i;
+  
   
   for(i = 0;i < 5;i++)
   {
       if(Digtial_ErrorCode_Level(_ErrorCodeBuffer[i]) == 1)
       {
-          i = 10;
-          by_Out = 1;
+          _DisplayErrorCode = _ErrorCodeBuffer[i];
+          return 1;
       }
   }
-  return by_Out;
+  // 2013.09.12
+  for(i = 5;i > 0;i--)
+  {
+      if(_ErrorCodeBuffer[i-1] != 0)
+      {
+          _DisplayErrorCode = _ErrorCodeBuffer[i-1];
+          return 0;
+      }
+  }
+  //_DisplayErrorCode = 0x1234;//_ErrorCodeBuffer[0];
+  return 0;
 }
 /*******************************************************************************
 * Function Name  : u16 Digtial_Set_ErrorCode()
@@ -278,6 +215,13 @@ u16 Digtial_Get_ErrorCode(void)
 {
     return(ErrorCode);
 }
+// 排序后准备显示用的错误码
+u16 Digital_Get_DisplayError(void)
+{
+    return _DisplayErrorCode;//_ErrorCodeBuffer[0];
+}
+                                  
+
 /*******************************************************************************
 * Function Name  : Digital_Initial
 * Description    : 数字通讯参数默认
@@ -287,6 +231,7 @@ u16 Digtial_Get_ErrorCode(void)
 *******************************************************************************/
 void Digital_Initial(void)
 {   
+    Digital.VersionCheck = 0;
     Digital.InclineStopCheck = 0;
     Digital.Stop = 0;
     _CheckRpmStopTime = 0;
@@ -305,11 +250,9 @@ void Digital_Initial(void)
     by_IGBT_Temp = 0;
     by_CheckInUser = 0x55;//==>Non Used
     Digital_CeckNonInUser = 0;
-    Digital.VersionStatus=0;
     InclineLocation=0;
     Digital.SAFE_Key=0;
     eSTOP_Time=0;
-    ErrorCode_Hold=0;//==>981104
     Digital.InsertSend = 0;
     Digital.Insert = 0;
     Digital.Incline_Shift=0;
@@ -483,6 +426,7 @@ void Digital_Set_DigitalSpeedTarget(u16 by_Dat)//==>设定追击起始值
       Digital.Stop = 1;
       _CheckRpmStopTime = 0;
       Digital.Incline_Check = 0;
+	  _InclinePercentOld = 1;
       _InclineCheckAgainDelayTime = 0;
   }
   Digital.TargetSpeed = 1;//==>开始追击
@@ -694,7 +638,11 @@ u8 Digital_Command(u8 by_Cmd,u32 by_Dat)// Sinkyo
     TX_Buffer[_Buffer][0]=0x00;//==> Start
     TX_Buffer[_Buffer][1]=0xff;//==> Address
     switch(by_Cmd)
-    {
+    {	
+        case CmdBikeGetBatteryCapacity:    // 0x88 // 取得电池百分比容量
+    	case CmdBikeGetBatteryStatus:      // 0x66 // 取得电池电压
+    	case CmdBikeGetInclineLocation:
+        case CmdCalibrate:         //  0x74 // 自动更正 
         case CmdInitial:           //  0x70 //设定下板初始化 
         case CmdGetStatus:         //  0x71 //状态取得
         case CmdGetErrorCode:      //  0x72 //错误代码取得
@@ -703,7 +651,7 @@ u8 Digital_Command(u8 by_Cmd,u32 by_Dat)// Sinkyo
         case CmdGetMotorRpm:       //  0xf9 //取得马达速度
         case CmdGetInclineLocation://  0xfa //取得升降准位
         case CmdGetVersion:        //  0x73 //取得MCB版本
-        //case CmdGetDCI_Version:    //  0x78 //取得DCI的下控软件版本  
+        case CmdBikeGetRPM:        //  0xfc // 取得ECB反馈RPM
         case CmdDCI_MANUAL_CALIBRATION:  // 0xab 
         case CmdDCI_GetInclineRange:  
         case CmdGetTreadmillInUsed:      // 0x95  
@@ -712,9 +660,45 @@ u8 Digital_Command(u8 by_Cmd,u32 by_Dat)// Sinkyo
                  TX_Buffer[_Buffer][3]=0;   //==>data长度
                  TX_Buffer[_Buffer][4]=Digital_CRC8((u8*)TX_Buffer[_Buffer],4);
                  break;
+        case CmdUpdateProgram:     
+	case CmdBikeSetEMagnetCurrent:
+	case CmdBikeSetLimitRpmForResis:	 
+	case CmdBikeSetLimitRpmForCharge:	 
+	case CmdBikeSetRpmGearRatio:
+	case CmdBikeSetEcbPwm:
+        case CmdBikeSetResistanceType:
+        case CmdTuneEndPointIncline:
+        case CmdTuneEndPointIncline2:
+        case CmdSetConsolePower:  
+        case CmdBikeSetWatts:  
+              TX_Buffer[_Buffer][2]=by_Cmd;
+              TX_Buffer[_Buffer][3]=2;	//==>data长度
+              TX_Buffer[_Buffer][4]=(u8)((u16)by_Dat>>8);
+              TX_Buffer[_Buffer][5]=(u8)by_Dat;
+              TX_Buffer[_Buffer][6]=Digital_CRC8((u8*)TX_Buffer[_Buffer],6);			
+              break;
+	case CmdSetInclinePercent:	
+              /*
+              //AdcValue=(u32)(by_Dat<<15)/100
+              by_Dat = (u16)((u32)(by_Dat<<15)/100);
+              Digital.Incline_Shift=0;
+              TX_Buffer[_Buffer][2]=by_Cmd;
+              TX_Buffer[_Buffer][3]=2;	//==>data长度
+              TX_Buffer[_Buffer][4]=(u8)((u16)by_Dat>>8);
+              TX_Buffer[_Buffer][5]=(u8)by_Dat;
+              TX_Buffer[_Buffer][6]=Digital_CRC8((u8*)TX_Buffer[_Buffer],6);
+              if(_InclinePercentOld != by_Dat)
+                  _InclinePercentOld = by_Dat;
+              else
+                  Digital.Command = 1;//==>相同参数不作动
+              */
+              break;          
         case CmdSetInclineAction:  //  0xf5 //设定升降控制
                  Digital.Incline_Shift=0;         
-        case CmdSetWorkStatus:     //  0xf7 //设定运动状态    
+        case CmdSetWorkStatus:     //  0xf7 //设定运动状态 
+        case CmdBikeSetMachineType:
+        case CmdBikeSetPowerOff:
+	case CmdBikeSetGenMegPolePare:
         case CmdDCI_FORCE_INCLINE_OPERATION:   // 0x94  
           
                  TX_Buffer[_Buffer][2]=by_Cmd;
@@ -850,11 +834,21 @@ u8 Digital_Command(u8 by_Cmd,u32 by_Dat)// Sinkyo
         case CmdLCBDeviceData :  // Sinkyo 
             // LCB_Set_EEPromGetState(0);
              TX_Buffer[_Buffer][2]=by_Cmd;
-             TX_Buffer[_Buffer][3]=3;   //==>data长度
-             TX_Buffer[_Buffer][4]=by_Dat >> 16; // second command
-             TX_Buffer[_Buffer][5]=(u8)((u16)by_Dat>>8);
-             TX_Buffer[_Buffer][6]=(u8)by_Dat;
-             TX_Buffer[_Buffer][7]=Digital_CRC8((u8*)TX_Buffer[_Buffer],7);
+             if(Digital.VersionCheck == 1)
+             {// Get LCB information
+                 Digital.VersionCheck = 0;
+                 TX_Buffer[_Buffer][3]=1;   //==>data长度
+                 TX_Buffer[_Buffer][4]=SecCmdGetLCBInformation;
+                 TX_Buffer[_Buffer][5]=Digital_CRC8((u8*)TX_Buffer[_Buffer],5);
+             }
+             else
+             {
+                 TX_Buffer[_Buffer][3]=3;   //==>data长度
+                 TX_Buffer[_Buffer][4]=by_Dat >> 16; // second command
+                 TX_Buffer[_Buffer][5]=(u8)((u16)by_Dat>>8);
+                 TX_Buffer[_Buffer][6]=(u8)by_Dat;
+                 TX_Buffer[_Buffer][7]=Digital_CRC8((u8*)TX_Buffer[_Buffer],7);
+             }
              break;                        
     }
     if(!Digital.Command)//==>当参数不同时就送command,针对升降与马达的command
@@ -969,6 +963,8 @@ void Digital_AutoReply(void)
                   by_TX = 20;//by_TX_Insert;
               }
           }
+          __HAL_UART_ENABLE_IT(&huart2, UART_IT_TXE);//==>USART2中断打开
+            /*
           if(TX_Buffer[by_TX][4+TX_Buffer[by_TX][3]] == Digital_CRC8((u8*)TX_Buffer[by_TX],4+TX_Buffer[by_TX][3]))
           {//==>当封包中的 CRC 码比对正确时
               __HAL_UART_ENABLE_IT(&huart2, UART_IT_TXE);//==>USART2中断打开
@@ -987,7 +983,7 @@ void Digital_AutoReply(void)
                   if(by_TX > 19) by_TX=0;
               }
           }
-          //
+            */
       }    
   }
   //
@@ -1007,8 +1003,27 @@ void Digital_AutoReply(void)
           else by_Error++;//==>避免没接线材而持续作累计用 (网络失效的侦测部份)
           Digital.RX=0;
           by_RX=0;
-          Digital.TX=1;
-          IO_Set_Digital_CTL();//==>封包设为输出
+          by_Delay=0;
+          if(TX_Buffer[by_TX][4+TX_Buffer[by_TX][3]] != Digital_CRC8((u8*)TX_Buffer[by_TX],4+TX_Buffer[by_TX][3]))
+          {//==>当封包中的 CRC 码比对错误时
+            //==>重新发送一新command
+            Digital.TX=0;
+            by_TX=0;
+            by_TX_Target=0;
+            Digital.Buffer_Over = 0;
+//            if(!LCB_Get_GetLCBEEPRomFlag())
+//            {
+//              Digital_Command(CmdBikeGetBatteryStatus,0);
+//              Digital_Command(CmdBikeGetRPM,0);
+//              //                    Digital_Command(CmdLCBDeviceData,SecCmdGetDCBusStatus<<16);
+//            }
+          }
+          else
+          {
+            Digital.TX=1;
+            IO_Set_Digital_CTL();//==>封包设为输出
+          }
+          Digital.RX_Return = 0;
       }
       else
       {
@@ -1073,6 +1088,12 @@ void Digital_AutoReply(void)
       if(eSTOP_Time < eSTOP_DelayTime)
       {
           eSTOP_Time++;  
+      }
+      if(Digital.VersionCheck == 1 && 
+         Digital.Buffer_Over == 0 && 
+           Digital.InsertSend == 0)
+      {// 下取新控制器版本指令方式
+        Digital_Command(CmdLCBDeviceData,0);
       }
       if(by_Delay > 400)//==>每400ms自动传输1次
       {
@@ -1165,7 +1186,7 @@ void Digital_UartTxRx_Information(void)
     if(__HAL_UART_GET_IT_SOURCE(&huart2, UART_IT_TXE) != RESET && __HAL_UART_GET_FLAG(&huart2,UART_FLAG_TXE) != RESET)
     {//==>判断是否发送中断
     /* Write one byte to the transmit data register */
-        huart2.Instance->DR = (TX_Buffer[by_TX][by_TX_Byte]) & 0xFF;
+        huart2.Instance->DR = (TX_Buffer[by_TX][by_TX_Byte] & 0xFF);
     /* Clear the USART2 transmit interrupt */
         __HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_TXE);
         if(by_TX_Byte >= (4+TX_Buffer[by_TX][3]))
@@ -1185,7 +1206,7 @@ void Digital_UartTxRx_Information(void)
     if(__HAL_UART_GET_IT_SOURCE(&huart2, UART_IT_RXNE) != RESET && __HAL_UART_GET_FLAG(&huart2,UART_FLAG_RXNE) != RESET)
     {//==>判断是否接收中断
         /* Read one byte from the receive data register */
-        RX_Buffer[by_RX] = (uint8_t)(huart2.Instance->DR & (uint16_t)0x00FF);
+        RX_Buffer[by_RX] = (uint8_t)(huart2.Instance->DR & 0x00FF);
         /* Clear the USART2 Receive interrupt */
         __HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_RXNE);
         if(Digital.RX)
@@ -1375,9 +1396,15 @@ void Digital_RX(void)
                      Digital.Skip=1;
                      break;
             case CmdGetVersion:        //==>0x73 取得MCB版本
-                     Digital.VersionStatus=1;
-                     MCBVersion=byData.WORD;
-                         MachineType=byData.BYTE[1];
+                     if(byData.WORD == 0xFF00)
+                     {
+                       Digital.VersionCheck = 1;
+                     }
+                     else
+                     {
+                       MCBVersion=byData.WORD;
+                       MachineType=byData.BYTE[1];
+                     }
                      break;         
                      /*
             case CmdGetDCI_Version:    //==>0x78 DCI专用版本特殊码取得

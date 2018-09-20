@@ -280,7 +280,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     PC10     ------> UART4_TX
     PC11     ------> UART4_RX 
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11;
+    GPIO_InitStruct.Pin = GPIO_PIN_10 | GPIO_PIN_11;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;

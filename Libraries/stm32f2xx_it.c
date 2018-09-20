@@ -446,7 +446,7 @@ void USART3_IRQHandler(void)
     if(__HAL_UART_GET_IT_SOURCE(&huart3, UART_IT_TXE) != RESET && __HAL_UART_GET_FLAG(&huart3,UART_FLAG_TXE) != RESET)//判断是否发送中断
     {
       /* Write one byte to the transmit data register */
-      huart3.Instance->DR = (CSAFE_TxBuffer()) & 0xFF;
+      huart3.Instance->DR = (CSAFE_TxBuffer() & 0xFF);
       /* Clear the USART3 transmit interrupt */
       __HAL_UART_CLEAR_FLAG(&huart3, UART_FLAG_TXE);
       if(CSAFE_TxRx_Information(1) == 1)// TX
@@ -459,7 +459,7 @@ void USART3_IRQHandler(void)
     {
       
       /* Read one byte from the receive data register */
-      CSAFE_RxBuffer((int8_t)(huart3.Instance->DR & (uint16_t)0x00FF));//==>取得讯框信息
+      CSAFE_RxBuffer((int8_t)(huart3.Instance->DR & 0x00FF));//==>取得讯框信息
       /* Clear the USART3 Receive interrupt */
       __HAL_UART_CLEAR_FLAG(&huart3, UART_FLAG_RXNE);
       CSAFE_TxRx_Information(0);// RX

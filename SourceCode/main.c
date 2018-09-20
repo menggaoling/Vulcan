@@ -47,8 +47,8 @@ u8 Workout(void);
 u8 CSAFE_ID(void);
 u8 Main_MotorStatusCheckMessage(u8 by_D);
 char ErrorCodeDisplay_Mode(char by_D);
-void RCC_Configuration(void);
-void NVIC_Configuration(void);
+//void RCC_Configuration(void);
+//void NVIC_Configuration(void);
 void Open_UCB_PSW(void);
 void Message_TestMode(void);
 void Workout_Information(u8 by_D);
@@ -466,8 +466,8 @@ void ucb_main(void)
       time.Minutes=0x00;
       time.Hours=0x10;
       time.Year=0x18;
-      time.Month=0x01;
-      time.Date=0x01;
+      time.Month=0x09;
+      time.Date=0x19;
       time.Day=0x07;
       WriteHT1381(&time);
   }  
@@ -636,7 +636,7 @@ void ucb_main(void)
                    if(bit.ErrorCode)
                    {//==>当有错误码产生时就储存
                        bit.ErrorCode = 0;
-                       Digital_ErroeCodeUpdate();
+                       Digital_ErrorCodeUpdate();
                        EEPROM_SaveError();//==>再将错误码存入
                    }
                    if(by_WorkoutDFNewProgram == 0)
@@ -5003,8 +5003,8 @@ void Target_SoftwareUpdate(u8 by_M)// 2013.07.26
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void RCC_Configuration(void)
-{
+//void RCC_Configuration(void)
+//{
 //  ErrorStatus HSEStartUpStatus;
 ///* SYSCLK, HCLK, PCLK2 and PCLK1 configuration -----------------------------*/   
 //  /* RCC system reset(for debug purpose) */
@@ -5083,7 +5083,7 @@ void RCC_Configuration(void)
         //RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
         /* TIM3 clock enable */
         //RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
-}
+//}
 
 /*******************************************************************************
 * Function Name  : NVIC_Configuration
@@ -5092,8 +5092,8 @@ void RCC_Configuration(void)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void NVIC_Configuration(void)
-{
+//void NVIC_Configuration(void)
+//{
 //        NVIC_InitTypeDef 		NVIC_InitStructure;
 //	//#ifdef  VECT_TAB_RAM
 //	/* Set the Vector Table base location at 0x20000000 */
@@ -5135,7 +5135,7 @@ void NVIC_Configuration(void)
         NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
         NVIC_Init(&NVIC_InitStructure);
         */
-}
+//}
 
 //******************************************************************************
 //==> ErrorCodeDisplay_Mode()
@@ -5212,9 +5212,9 @@ char ErrorCodeDisplay_Mode(char by_D)
           Show_Message(Message_Blank,0,0,Show_Blank);
           Led_ClearProfileMap();
           Led_String("Error:    ",0,0);
-          Led_Special(2,40,Digtial_Get_ErrorCode());
+          Led_Special(2,40,Digital_Get_DisplayError());
           Digtial_Set_ErrorCode(0);//==>清除错误码暂存
-          Digital_ErroeCodeUpdate();
+          Digital_ErrorCodeUpdate();
           EEPROM_SaveError();//==>再将错误码存入
           bit.ErrorCode = 0;
           Digital_Set_DigitalSpeedTarget(0);//==>速度归零
@@ -5236,7 +5236,7 @@ char ErrorCodeDisplay_Mode(char by_D)
               {//==>当开启Class C以下错误码显示
                   Show_Message(Message_Blank,0,0,Show_Blank);
                   Led_String("Error:    ",0,0);
-                  Led_Special(2,40,Digtial_Get_ErrorCode());
+                  Led_Special(2,40,Digital_Get_DisplayError());
                   Timer_Counter_Clear(0);
                   while(!Timer_Counter(T_STEP,0,30)) 
                   {

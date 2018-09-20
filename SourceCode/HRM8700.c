@@ -777,7 +777,7 @@ void HR_UartTxRx_Information(void)
         if(Tx_Status.txIndex < Tx_Status.length)
         {
           /* Write one byte to the transmit data register */
-          huart6.Instance->DR = HRM_TxBuffer[Tx_Status.txIndex++] & 0xFF;
+          huart6.Instance->DR = (HRM_TxBuffer[Tx_Status.txIndex++] & 0xFF);
         }
         else
         {
@@ -795,7 +795,7 @@ void HR_UartTxRx_Information(void)
         /* Clear the USART1 Receive interrupt */
         __HAL_UART_CLEAR_FLAG(&huart6, UART_FLAG_RXNE);
         /* Read one byte from the receive data register */        
-        if(HRM_Recv_Int((uint8_t)(huart6.Instance->DR & (uint16_t)0x00FF)))
+        if(HRM_Recv_Int((uint8_t)(huart6.Instance->DR & 0x00FF)))
         {      
           if(Tx_Status.responsebit)
           {            

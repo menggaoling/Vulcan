@@ -526,7 +526,7 @@ unsigned char wifi_Digital_UartTxRx_Information(void)
   if(__HAL_UART_GET_IT_SOURCE(&huart5, UART_IT_RXNE ) != RESET && __HAL_UART_GET_FLAG(&huart5, UART_FLAG_RXNE) != RESET)
   {//==>判斷是否接收中斷
       /* Read one byte from the receive data register */
-      Digital_Recv_Int_wifi((uint8_t)(huart5.Instance->DR & (uint16_t)0x00FF));
+      Digital_Recv_Int_wifi((uint8_t)(huart5.Instance->DR & 0x00FF));
       /* Clear the UART5 Receive interrupt */
       //USART_ClearITPendingBit(UART5, USART_IT_RXNE);  
         //

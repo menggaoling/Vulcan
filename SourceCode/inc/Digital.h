@@ -12,8 +12,34 @@
 #define CmdGetStatus            0x71 //状态取得
 #define CmdGetErrorCode         0x72 //错误代码取得
 #define CmdGetVersion           0x73 //取得MCB版本
+#define CmdCalibrate            0x74 //自动更正
+#define CmdUpdateProgram        0x75 //更新LCB软件
 #define CmdSkipCurrentError     0x76 //移除目前错误码
 #define CmdGetDCI_Version       0x78 //DCI专用command
+#define CmdSetConsolePower      0x7b //设定仪表功率
+
+//==> Bike
+#define CmdTuneEndPointIncline         0xfb
+#define CmdTuneEndPointIncline2        0xfc
+#define CmdBikeGetRPM		       0x63 //取得ecb反馈0~200
+#define CmdBikeSetEcbPwm	       0x65 //设定磁控PWM百分比 0~32768
+#define CmdBikeGetBatteryStatus        0x66 //取得电池电压准位(H发电机,L电池)0.1x255
+#define CmdBikeSetWatts                0x67
+#define CmdBikeSetRpmGearRatio         0x68 //设定rpm速比(0.01x65535)
+#define CmdBikeSetGenMegPolePare       0x69 //发电机磁极组数(预设4)
+#define CmdBikeSetLimitRpmForCharge    0x6a //设定rpm值来控制电池充电 0~65535
+#define CmdBikeSetLimitRpmForResis     0x6b //设定rpm值来控制阻力开关 0~65535
+#define CmdBikeSetMachineType	       0x6c //设定机型
+#define CmdBikeSetPowerOff	       0x6D //关闭电源
+
+
+#define CmdBikeSetEMagnetCurrent       0x85
+#define CmdBikeSetResistanceType       0x86
+#define CmdBikeGetBatteryCapacity      0x88 // 取得电池百分比容量
+//incline
+#define CmdSetInclinePercent           0x80
+#define CmdBikeGetInclineLocation      0x81
+#define CmdBikeSetEcbAction	       0x82
 
 //==> Digital for TM
 #define CmdSetMotorCounter      0xf1 //设定马达转速
@@ -46,6 +72,8 @@
 #define SecCmdGetEEPromMemoryContent  0x02 // CmdLCBDeviceData底下的第二道Command // 取得LCB EEProm已经储存的内容
 #define SecCmdGetECBCurrent           0x03 // CmdLCBDeviceData底下的第二道Command // 取得LCB 2个ECB的电流值 unit:mA
 #define SecCmdGetEStopVale            0x04
+
+#define SecCmdGetLCBInformation       0xF0
 // <==
 #define InUserMotoCheckTime 6 // 马达稳定时间参数值
 //
@@ -94,9 +122,10 @@ void Digital_ErrorCode_ChangToAddress(void);
 u8 Digital_CheckError(void);
 
 u8 Digital_CheckClassCError(void);
-void Digital_ErroeCodeUpdate(void);
+void Digital_ErrorCodeUpdate(void);
 u8 Digital_InclineProtection(u8 by_Dat);// S003-01
 u8 Digital_GetStatus(void);// S003-01
+u16 Digital_Get_DisplayError(void);
 void Digital_Clear_ErrorCount(void);
 u16 Digital_GetMCB_Information(u8 by_D);
 //void Digital_CommunicationStart(u8 by_D);
