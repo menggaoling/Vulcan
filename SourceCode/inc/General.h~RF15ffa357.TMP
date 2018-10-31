@@ -21,7 +21,7 @@ extern const unsigned char Boot_Version[20] ;
 //##################################################################################
 // 版本设定项(升版时需要同步修改)
 // T1x-04-C，TM522D-1US-C
-#define Console_Version "UCB:V1.001"
+#define Console_Version "UCB:V1.002"
 
 
 //#define Console_Version "UCB:A2-20150826"
@@ -462,7 +462,7 @@ extern const unsigned char Boot_Version[20] ;
 //=================================================================
 // HR
 //=================================================================
-#define IO_HeartRateSignal()  HAL_GPIO_ReadPin(GPIOE,GPIO_PIN_3)
+#define IO_HeartRateSignal()  HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_8)
 //=================================================================
 // Safe Key
 //=================================================================

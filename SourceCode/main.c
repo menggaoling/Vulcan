@@ -603,8 +603,7 @@ void ucb_main(void)
   bit.CanUpdateSoftware=0;
   bit.CanUpdateSoftwareStare=0;
   // end v2.1-13
-  //HRM_Init();
-  while(1)//{HRM_State_Machine();}
+  while(1)
   {
       switch(by_Address)
       {

@@ -729,7 +729,7 @@ u8 Digital_Command(u8 by_Cmd,u32 by_Dat)// Sinkyo
                          //==>配合升降马达不同才需加入
                          if(MachineType == LCB_TopTek || MachineType == LCB_DELTA_C3)
                          {//==>阳刚
-                             by_Dat |= 0x8000;//==>Incline反向
+//                             by_Dat |= 0x8000;//==>Incline反向
                          }
                      }
                      else
@@ -739,7 +739,7 @@ u8 Digital_Command(u8 by_Cmd,u32 by_Dat)// Sinkyo
                  }
                  else if(MachineType == LCB_TopTek|| MachineType == LCB_DELTA_C3)//==>配合升降马达不同才需加入
                  {//==>阳刚
-                   by_Dat |= 0x8000;//==>Incline反向
+//                   by_Dat |= 0x8000;//==>Incline反向
                  }  
         case CmdSetMotorCounter:   //  0xf1 //设定马达转速
                  if(by_Cmd==CmdSetMotorCounter)

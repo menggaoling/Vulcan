@@ -292,6 +292,7 @@ unsigned char Low_PowerMode(void)
           LL_EXTI_DeInit();
       }
       SystemInit(); // Reset Clock
+      HAL_Init(); // Reset Clock
   }
   //EXTI_DeInit();
   //SystemInit(); // Reset Clock

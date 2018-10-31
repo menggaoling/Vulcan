@@ -138,7 +138,7 @@ void MX_GPIO_Init(void)
 	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct); 
         
-        /* Configure GPIOB.6 & GPIOB.7 as open-drain output */
+        /* Configure GPIOB.8 & GPIOB.9 as open-drain output */
         GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9;
         GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
         GPIO_InitStruct.Pull = GPIO_PULLUP;
@@ -241,16 +241,17 @@ void MX_GPIO_Init(void)
            pin7 : 
            pin8 ~ pin15 : Key Pad Sacn SK1 ~ SK8  
         */
-        GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2  | GPIO_PIN_3 | \
+        GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2  | \
                                       GPIO_PIN_5 | GPIO_PIN_7 | GPIO_PIN_8  | \
                                       GPIO_PIN_9 | GPIO_PIN_10| GPIO_PIN_11| GPIO_PIN_12 | \
                                       GPIO_PIN_13| GPIO_PIN_14| GPIO_PIN_15;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);	
         
-        GPIO_InitStruct.Pin = GPIO_PIN_6 |GPIO_PIN_4 ;
+        GPIO_InitStruct.Pin = GPIO_PIN_6 |GPIO_PIN_4 | GPIO_PIN_3 ;
 	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
         GPIO_InitStruct.Pull = GPIO_PULLUP;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
 	HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
         
         //

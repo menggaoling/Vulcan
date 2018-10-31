@@ -106,19 +106,19 @@ void hard_fault_handler_c(unsigned int * hardfault_args)
   stacked_pc = ((unsigned long) hardfault_args[6]);
   stacked_psr = ((unsigned long) hardfault_args[7]);
   printf ("[Hard fault handler]\n");
-  printf ("R0 = %x\n", stacked_r0);
-  printf ("R1 = %x\n", stacked_r1);
-  printf ("R2 = %x\n", stacked_r2);
-  printf ("R3 = %x\n", stacked_r3);
-  printf ("R12 = %x\n", stacked_r12);
-  printf ("LR = %x\n", stacked_lr);
-  printf ("PC = %x\n", stacked_pc);
-  printf ("PSR = %x\n", stacked_psr);
-  printf ("BFAR = %x\n", (*((volatile unsigned long *)(0xE000ED38))));
-  printf ("CFSR = %x\n", (*((volatile unsigned long *)(0xE000ED28))));
-  printf ("HFSR = %x\n", (*((volatile unsigned long *)(0xE000ED2C))));
-  printf ("DFSR = %x\n", (*((volatile unsigned long *)(0xE000ED30))));
-  printf ("AFSR = %x\n", (*((volatile unsigned long *)(0xE000ED3C))));
+  printf ("R0 = 0x%x\n", stacked_r0);
+  printf ("R1 = 0x%x\n", stacked_r1);
+  printf ("R2 = 0x%x\n", stacked_r2);
+  printf ("R3 = 0x%x\n", stacked_r3);
+  printf ("R12 = 0x%x\n", stacked_r12);
+  printf ("LR = 0x%x\n", stacked_lr);
+  printf ("PC = 0x%x\n", stacked_pc);
+  printf ("PSR = 0x%x\n", stacked_psr);
+  printf ("BFAR = 0x%x\n", (*((volatile unsigned long *)(0xE000ED38))));
+  printf ("CFSR = 0x%x\n", (*((volatile unsigned long *)(0xE000ED28))));
+  printf ("HFSR = 0x%x\n", (*((volatile unsigned long *)(0xE000ED2C))));
+  printf ("DFSR = 0x%x\n", (*((volatile unsigned long *)(0xE000ED30))));
+  printf ("AFSR = 0x%x\n", (*((volatile unsigned long *)(0xE000ED3C))));
 //  exit(0); // terminate
   return;
 }

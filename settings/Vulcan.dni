@@ -17,7 +17,7 @@ TracePortSize=0x00000004
 StopOnUncaught=_ 0
 StopOnThrow=_ 0
 [DebugChecksum]
-Checksum=-395963757
+Checksum=-1709930687
 [CodeCoverage]
 Enabled=_ 0
 [CallStack]
@@ -113,9 +113,8 @@ Exclusions=
 [Disassemble mode]
 mode=0
 [Breakpoints2]
-Bp0=_ 1 "EMUL_CODE" "{$PROJ_DIR$\Libraries\stm32f2xx_it.c}.117.3" 0 0 1 "" 0 "" 0
-Bp1=_ 0 "EMUL_CODE" "{$PROJ_DIR$\SourceCode\HRM8700.c}.785.11" 0 0 1 "" 0 "" 0
-Count=2
+Bp0=_ 0 "EMUL_CODE" "{$PROJ_DIR$\SourceCode\HRM8700.c}.785.11" 0 0 1 "" 0 "" 0
+Count=1
 [Aliases]
 Count=0
 SuppressDialog=0

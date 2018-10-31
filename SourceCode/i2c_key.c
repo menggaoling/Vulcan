@@ -116,7 +116,8 @@ static uint8_t i2cReceiveByte(void)
     uint8_t i = 8;
     uint8_t byte = 0;
 
-//    SDA_H;
+    SDA_H;
+	i2cDelay();
     while (i--) 
     {
         byte <<= 1;

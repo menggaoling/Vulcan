@@ -20,7 +20,7 @@ define symbol __ICFEDIT_region_BOOT_end__   = 0x0800F7FF ;  // Modify AEFF -> C6
 //define symbol __ICFEDIT_region_WIFI_start__             = 0x0800B000 ; // close wifi region by Alfred 20160219
 //define symbol __ICFEDIT_region_WIFI_end__ 	          = 0x0800C7FF ; // close wifi region by Alfred 20160219
 define symbol __ICFEDIT_region_ROM_start__ = 0x08010000;
-define symbol __ICFEDIT_region_ROM_end__   = 0x0807FFFF;
+define symbol __ICFEDIT_region_ROM_end__   = 0x080FFFFF;
 
 // RAM
 define symbol __ICFEDIT_region_INITRAM_start__ 	        = 0x20000000 ;

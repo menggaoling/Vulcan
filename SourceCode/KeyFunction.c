@@ -485,7 +485,7 @@ unsigned int KeyScan_Proce(void)
               if(by_Hold_Time == 1)
               {//==>按键第一次成立时
                   by_Out = by_Dat;
-                  if(_Key_Data != 0)
+                  if(by_Dat != 0)
                   {//==> 当有正确传址时
                       // 初次按键成立哔声              
                       BEEP_Proce(2,2,1);

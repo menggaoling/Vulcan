@@ -8,13 +8,13 @@
 
 
 /* Includes ------------------------------------------------------------------*/
-//#include "stm32f10x.h"
+#include "stm32f10x.h"
 
 
 #define _RFID_LoopTime          100
 #define _RFID_RxTimeout         (1000/_RFID_LoopTime)     // 1000 /100 = 10
 #define _RFID_SearchTXPTime     (200/_RFID_LoopTime)
-#define _MaxUID       20
+#define _MaxUID  1
 
 
 
@@ -62,6 +62,7 @@
 #define SET_USER_KEY            0x1A  //Writes a key for user defined encryption or authentication of third-party TXPs to the key storage page 66
 #define GET_USER_KEY            0x1B  //Reads the fingerprint of a key from the key storage page 69
 #define SELECT_USER_KEY         0x1C
+#define SEARCH_TXP_3            0x3D  //Searche Apple watch device and RF field and return related data
 #define AUTH_A                  0xF0  //Authenticates the host interface for secured host communication (1st step) page 73
 #define AUTH_B                  0xF1  //Authenticates the host interface for secured host communication (2nd step) page 74
 #define ENCRYPTED               0xF2  //Sends authenticated and encrypted commands in secure mode page 76
@@ -150,18 +151,9 @@ typedef enum{
     SONY_FeliCa_STD       //SONY FeliCa subset
 } RF_Standard ;
 
-
-typedef volatile union {
-  struct {
-    unsigned char Find:1 ;
-    unsigned char Count:7 ;
-  } Bits ;
-  unsigned char All ;
-} TXP_Staut ;
-
 typedef union {
   struct {
-    RF_Standard RF_STD ;
+    RF_Standard RF_STD;
     unsigned char UIDSize ;
     unsigned char UID[10] ;
   } Member ;
@@ -171,24 +163,29 @@ typedef union {
 
 
 
-void RFID_GATRM310_Initial(void) ;
-void RFID_GATRM310_HW_Initial(void) ;
-void RFID_GATRM310_TxRxInterrupt(void) ;
-void RFID_GATRM310_ClearUID(void) ;
-void RFID_GATRM310_Process(void) ;
-
-
-
-unsigned char RFID_GATRM310_GetAPPL_State(unsigned char SubCmd) ;
-unsigned char RFID_GATRM310_GetIDB(unsigned char Tag) ;
-unsigned char RFID_GATRM310_ReadDCF(void) ;
-unsigned char RFID_GATRM310_SEARCH_TXP(unsigned char Tag) ;
-unsigned char RFID_GATRM310_SetCommand( unsigned char Command, unsigned char Length, unsigned char *DataPtr ) ;
-
+void RFID_GATRM310_Initial(void);
+unsigned char RFID_GATRM310_Process(void);
+unsigned char RFID_TXE_Status(unsigned char by_D);
+void RFID_RxBuffer(unsigned char c);
+unsigned char RFID_TxBuffer(void);
+char RFID_GATRM310_TxRxInterrupt(char by_D);
+void RFID_GATRM310_Set_HWFlag(unsigned char by_Flag);
+unsigned char RFID_GATRM310_GetOnline(void);
 unsigned char RFID_GATRM310_GetCard(void);
 
-extern TXP_Staut RFID_UIDStatus ;
-extern TXP_UID   RFID_UID[_MaxUID] ;
-extern SM4200_Tag00    RFID_Version ;
+
+
+void RFID_GATRM310_ClearUID(void);
+
+// start v2.001-3
+// unsigned char RFID_GATRM310_GetUID(unsigned char _Mode,unsigned char _Dat,unsigned char _Dat1); 
+TXP_UID RFID_GATRM310_GetUID(void);
+
+// end
+//
+
+
+extern TXP_UID   RFID_UID[_MaxUID];
+extern SM4200_Tag00    RFID_Version;
 #endif /*__RFID_GATRM310_H */
 /******************* (C) COPYRIGHT 2013 Johnsonfitness  *****END OF FILE****/

@@ -4,18 +4,20 @@
   * @author  KunLung Lai
   * @version V1.0.0
   * @date    09/17/2014
-  * @brief   CAB protocol
+  * @brief   Legic protocol
   ******************************************************************************
 */ 
-
+/**
+  ******************************************************************************
+  * @file    RFID_GATRM310.c
+  * @author  Garry Meng
+  * @version V2.0.0
+  * @date    09/29/2018
+  * @brief   add SEARCH_TXP_3 and Apple Watch related code
+  ******************************************************************************
+*/ 
 //------------------------------------------------------------------------------
 #include  "RFID_GATRM310.h"
-
-
-//
-#define   RFID_GATRM310_PORT                     USART1
-#define   RFID_GATRM310_IRQ                      USART1_IRQn
-#define   RFID_GATRM310_TxRxInterrupt  		 USART1_IRQHandler
 
 
 
@@ -24,6 +26,10 @@
 //------------------------------------------------------------------
 unsigned char RFIDSendData[5] ;
 //unsigned char RFIDReadData[255] ;
+unsigned char bu_RFUID[10];
+RF_Standard bu_RFSTD ;// v4.1-1
+
+unsigned char _TagType=0;
 
 SM4200_Response AnswerData ;
 SM4200_Tag00    RFID_Version ;
@@ -41,10 +47,19 @@ volatile union {
     unsigned char SearchTxpStart:1 ;
     unsigned char RxOK:1 ;    
     unsigned char Version:1 ;
+	unsigned char TX_Switch:1;
   } Bit ;
   unsigned char All ;
 } RFID_Flag ;
 
+
+typedef volatile union {
+  struct {
+    unsigned char Find:1 ;
+    unsigned char Count:7 ;
+  } Bits ;
+  unsigned char All ;
+} TXP_Staut;
 
 TXP_Staut RFID_UIDStatus ;
 
@@ -69,7 +84,6 @@ unsigned char* RFID_GATRM310_RxFunc_NextPt(unsigned char *pt) ;
 unsigned char RFID_GATRM310_RxFunc_IsEmpty(void) ;
 unsigned char RFID_GATRM310_RxFunc_IsFull(void) ;
 unsigned short RFID_GATRM310_RxFunc_Length(void) ;
-void RFID_GATRM310_RxFunc_Putc(unsigned char c) ;
 unsigned char RFID_GATRM310_RxFunc_Getc(void) ;
 
 void RFID_GATRM310_TxFunc_Init(void) ;
@@ -78,11 +92,18 @@ unsigned char RFID_GATRM310_TxFunc_IsEmpty(void) ;
 unsigned char RFID_GATRM310_TxFunc_IsFull(void) ;
 unsigned short RFID_GATRM310_TxFunc_Length(void) ;
 void RFID_GATRM310_TxFunc_Putc(unsigned char c) ;
-unsigned char RFID_GATRM310_TxFunc_Getc(void) ;
+
 
 
 SM4200M_Command* RFID_GATRM310_GetCommandDefine(unsigned char Command);
 unsigned short RFID_GATRM310_CRC16(unsigned char *data, unsigned char TransMode );
+
+unsigned char RFID_GATRM310_GetAPPL_State(unsigned char SubCmd);
+unsigned char RFID_GATRM310_GetIDB(unsigned char Tag);
+unsigned char RFID_GATRM310_ReadDCF(void);
+unsigned char RFID_GATRM310_SEARCH_TXP(unsigned char Tag);
+unsigned char RFID_GATRM310_SetCommand( unsigned char Command, unsigned char Length, unsigned char *DataPtr );
+
 
 #define _NumberOfCommand              29
 SM4200M_Command SM4200M_CommandList[_NumberOfCommand] = 
@@ -113,9 +134,10 @@ SM4200M_Command SM4200M_CommandList[_NumberOfCommand] =
   {SET_USER_KEY,      0x26,0x00,0x04,0x04},        //23
   {GET_USER_KEY,      0x04,0x00,0x0A,0x0A},        //24
   {SELECT_USER_KEY,   0x04,0x00,0x04,0x04},        //25
-  {AUTH_A,            0x03,0x00,0x14,0x14},        //26
-  {AUTH_B,            0x23,0x00,0x74,0x74},        //27
-  {ENCRYPTED,         0x14,0xF4,0x05,0xF5}         //28  x 14~F4
+//  {SEARCH_TXP_3,      0x04,0x00,0x04,0x04},        //26  
+  {AUTH_A,            0x03,0x00,0x14,0x14},        //27
+  {AUTH_B,            0x23,0x00,0x74,0x74},        //28
+  {ENCRYPTED,         0x14,0xF4,0x05,0xF5}         //29  x 14~F4
 } ;
 
 unsigned char ApplStateSubCommand ;
@@ -139,50 +161,8 @@ void RFID_GATRM310_Initial(void)
   SearchCounter = 0 ;// for test
   RFID_UIDStatus.All = 0 ;
   //
-  return ;
-}
-
-/*******************************************************************************
-* Function Name  : 
-* Description    : 
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-void RFID_GATRM310_HW_Initial(void)
-{
-  USART_InitTypeDef 	  USART_InitStructure;
-  NVIC_InitTypeDef      NVIC_InitStructure ;
-  //
-  RFID_Flag.Bit.RFID_HW_InitialOK = 0 ;
-  RFID_GATRM310_Initial() ;   
-  //----------------------------------------------------------------------------
-  USART_InitStructure.USART_BaudRate = 115200 ;
-  USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-  USART_InitStructure.USART_StopBits = USART_StopBits_1;
-  USART_InitStructure.USART_Parity = USART_Parity_No;
-  USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-  USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-  // Configure USART1 
-  USART_Init(RFID_GATRM310_PORT, &USART_InitStructure);
-  // Enable USART1 Receive interrupt 
-  USART_ITConfig(RFID_GATRM310_PORT, USART_IT_RXNE, ENABLE);
-  // Enable USART1 Transmit interrupt 
-  //USART_ITConfig(USART1,USART_IT_TC,ENABLE);
-  //
-  USART_Cmd(RFID_GATRM310_PORT, ENABLE);
-  // Clear All Interrupt Flag
-  USART_ClearITPendingBit(RFID_GATRM310_PORT, USART_IT_RXNE);
-  //USART_ClearITPendingBit(USART1, USART_IT_TC);
-  //  Enable the UART1 global Interrupt
-  NVIC_InitStructure.NVIC_IRQChannel = RFID_GATRM310_IRQ ; 
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure);
-  //
-  RFID_Flag.Bit.RFID_HW_InitialOK = 1 ;
-  return ;
+  RFID_GATRM310_Set_HWFlag(1);//insure that uart configration has complete before set this flag
+  return;
 }
 
 
@@ -193,29 +173,14 @@ void RFID_GATRM310_HW_Initial(void)
 * Output         : 
 * Return         : 
 *******************************************************************************/
-void RFID_GATRM310_TxRxInterrupt(void)
+char RFID_GATRM310_TxRxInterrupt(char by_D)
 {
-  // Receive
-  if(USART_GetITStatus(RFID_GATRM310_PORT, USART_IT_RXNE) != RESET) 
-      {
-      RFID_GATRM310_RxFunc_Putc(USART_ReceiveData(RFID_GATRM310_PORT));
-      /* Clear the Receive interrupt */
-      USART_ClearITPendingBit(RFID_GATRM310_PORT, USART_IT_RXNE);
-      //
-      }
-  // Transmit
-  if(USART_GetITStatus(RFID_GATRM310_PORT, USART_IT_TXE) != RESET) 
-      {
-      /* Clear the Transmit interrupt */
-      USART_ClearITPendingBit(RFID_GATRM310_PORT, USART_IT_TXE);
-      //
-      if( RFID_GATRM310_TxFunc_IsEmpty() == 0 )
-          USART_SendData(RFID_GATRM310_PORT,RFID_GATRM310_TxFunc_Getc());
-      else
-          USART_ITConfig(RFID_GATRM310_PORT, USART_IT_TXE, DISABLE);
-      //
-      }
-  return ;
+	if(by_D == 1)// TX
+  	{
+    	if(RFID_GATRM310_TxFunc_IsEmpty() != 0)
+	  		return 1;	
+  	}
+ 	return 0;
 }
 
 
@@ -228,12 +193,17 @@ void RFID_GATRM310_TxRxInterrupt(void)
 *******************************************************************************/
 void RFID_GATRM310_ClearUID(void)
 {
-  unsigned char i,j ;
-  for( j = 0 ; j < _MaxUID ; j++)
-    for( i = 0 ; i < 12 ; i++ )
-        RFID_UID[j].Member.UID[i] = 0 ;
+  unsigned char i;
   
+  // start v4.1-1
+  for( i = 0 ; i < 12 ; i++ )
+  {
+      RFID_UID[0].All[i] = 0 ;
+  }
+  // end v4.1-1
   RFID_UIDStatus.Bits.Count = 0 ;
+  RFID_UIDStatus.Bits.Find = 0;
+  _TagType=0;
 }
 
 
@@ -252,18 +222,18 @@ const unsigned char RFID_SearchSquenceTable[6] = {
 * Output         : 
 * Return         : 
 *******************************************************************************/
-void RFID_GATRM310_Process(void)
+unsigned char RFID_GATRM310_Process(void)
 {
-  SM4200_CrC16 rCRC,Check_CRC ;
-  SM4200M_Command *CmdPtr ;
-  unsigned char DataLength ;
-  unsigned char i,j ;
-  unsigned char TXP_Number ;
-  static unsigned char WaitPollingTime ;
-  unsigned char *ptr ;
+  SM4200_CrC16 rCRC,Check_CRC;
+  SM4200M_Command *CmdPtr;
+  unsigned char DataLength;
+  unsigned char i,j;
+  unsigned char TXP_Number;
+  static unsigned char WaitPollingTime;
+  unsigned char *ptr;
   //
-  if( RFID_Flag.Bit.RFID_HW_InitialOK == 0 )
-      return ;
+  if(RFID_Flag.Bit.RFID_HW_InitialOK == 0)
+      return 0;
   //
   RFID_ProcessTime += 1 ;
   if( RFID_ProcessTime >= _RFID_LoopTime )
@@ -273,13 +243,13 @@ void RFID_GATRM310_Process(void)
       switch( RFID_ControlState )
           {
           case  7 :
-                  if( RFID_GATRM310_GetIDB(VERSIONS) )
+                  if(RFID_GATRM310_GetIDB(VERSIONS) )
                       RFID_ControlState = 0 ;
                   break ;
           case  1 :                  
                   if( RFID_STATE != Idle )
                       {
-                      if( RFID_GATRM310_GetAPPL_State(ResetHW) )
+                      if(RFID_GATRM310_GetAPPL_State(ResetHW) )
                           {
                           SearchTXPIndex = 0 ;
                           RFID_ControlState = 5 ;
@@ -308,7 +278,8 @@ void RFID_GATRM310_Process(void)
                       RFID_ControlState = 0 ;
                       RFID_Flag.Bit.SearchTxpStart = 0 ;
                       if( RFID_UIDStatus.Bits.Count != 0 )
-                          RFID_UIDStatus.Bits.Find = 1 ;                          
+                          RFID_UIDStatus.Bits.Find = 1 ;   
+                      
                       }
                   else
                       {
@@ -327,15 +298,15 @@ void RFID_GATRM310_Process(void)
                       WaitPollingTime -= 1 ;
                   break ;
           default :
-                  if( RFID_GATRM310_RxFunc_IsEmpty() == 0 )
+                  if( RFID_GATRM310_RxFunc_IsEmpty() == 0 )// Not empty
                       {
-                      AnswerData.Length = *RFID_GATRM310_RxStartPoint ;
-                      if( RFID_GATRM310_RxFunc_Length() > AnswerData.Length )
+                      AnswerData.Length = *RFID_GATRM310_RxStartPoint;
+                      if(RFID_GATRM310_RxFunc_Length() > AnswerData.Length)
                           {
                           // Move data pointer to CRC
-                          ptr = RFID_GATRM310_RxStartPoint ;
-                          for( i = 0 ; i < (AnswerData.Length-1) ; i++ )
-                              ptr = RFID_GATRM310_RxFunc_NextPt(ptr) ;
+                          ptr = RFID_GATRM310_RxStartPoint;
+                          for( i = 0; i < (AnswerData.Length-1); i++ )
+                              ptr = RFID_GATRM310_RxFunc_NextPt(ptr);
                           // Check Crc
                           Check_CRC.All = RFID_GATRM310_CRC16(RFID_GATRM310_RxStartPoint,0);
                           rCRC.Byte.Hi = *ptr;
@@ -424,6 +395,8 @@ void RFID_GATRM310_Process(void)
                                                                                   }
                                                                               }
                                                                           RFID_UIDStatus.Bits.Count += j ;
+                                                                          _TagType=RFID_SearchSquenceTable[SearchTXPIndex-1];
+                                                                          
                                                                           }
                                                                       //
                                                                       if( RFID_Flag.Bit.SearchTxpStart == 1 )
@@ -438,7 +411,7 @@ void RFID_GATRM310_Process(void)
                           else // Skip to next                        
                               RFID_GATRM310_RxFunc_Getc() ;
                           }                      
-                      }
+                      }         
                   break;                    
           }
       // Timeout
@@ -446,14 +419,15 @@ void RFID_GATRM310_Process(void)
           {
           RFID_Timeout += 1 ;
           if( RFID_Timeout > _RFID_RxTimeout )
-              {
-              //
-              USART_ITConfig(RFID_GATRM310_PORT, USART_IT_RXNE, DISABLE);
-              USART_ITConfig(RFID_GATRM310_PORT, USART_IT_TXE, DISABLE);
-              RFID_GATRM310_Initial() ;
-              USART_ITConfig(RFID_GATRM310_PORT, USART_IT_RXNE, ENABLE);
-              //              
-              }
+          {
+            return 1;
+            /*
+            USART_ITConfig(RFID_GATRM310_PORT, USART_IT_RXNE, DISABLE);
+            USART_ITConfig(RFID_GATRM310_PORT, USART_IT_TXE, DISABLE);
+            RFID_GATRM310_Initial() ;
+            USART_ITConfig(RFID_GATRM310_PORT, USART_IT_RXNE, ENABLE);
+            */
+          }
           }
       else
           {
@@ -470,12 +444,12 @@ void RFID_GATRM310_Process(void)
                   SearchTXPLoopTime += 1 ;
                   if( SearchTXPLoopTime >= _RFID_SearchTXPTime )
                       {
-                      SearchTXPIndex = 0 ;
-                      RFID_GATRM310_ClearUID() ;
-                      RFID_Flag.Bit.SearchTxpStart = 1 ;
-                      SearchTXPLoopTime = 0 ;
-                      RFID_ControlState = 5 ;
-                      SearchCounter += 1 ; // for test
+                        SearchTXPIndex = 0 ;
+                        RFID_GATRM310_ClearUID() ;
+                        RFID_Flag.Bit.SearchTxpStart = 1 ;
+                        SearchTXPLoopTime = 0 ;
+                        RFID_ControlState = 5 ;
+                        SearchCounter += 1 ; // for test
                       }
                   }
               else
@@ -485,7 +459,7 @@ void RFID_GATRM310_Process(void)
       //
       }
   //
-  return ;
+  return 0;
 }
 
 
@@ -580,7 +554,8 @@ unsigned char RFID_GATRM310_SetCommand( unsigned char Command, unsigned char Len
           RFID_GATRM310_TxFunc_Putc(CrC16.Byte.Hi) ;
           RFID_GATRM310_TxFunc_Putc(CrC16.Byte.Lo) ;
           // Start Transmit
-          USART_ITConfig(RFID_GATRM310_PORT,USART_IT_TXE,ENABLE);
+          //USART_ITConfig(RFID_GATRM310_PORT,USART_IT_TXE,ENABLE);
+          RFID_Flag.Bit.TX_Switch = 1;
           RFID_Flag.Bit.CheckRxTimeout = 1 ;
           //
           }
@@ -725,7 +700,7 @@ unsigned short RFID_GATRM310_RxFunc_Length(void)
 * Output         : 
 * Return         : 
 *******************************************************************************/
-void RFID_GATRM310_RxFunc_Putc(unsigned char c)
+void RFID_RxBuffer(unsigned char c)
 { 
 	if(RFID_GATRM310_RxStartPoint == RFID_GATRM310_RxFunc_NextPt(RFID_GATRM310_RxEndPoint)) 
 	    return ; 
@@ -845,33 +820,88 @@ void RFID_GATRM310_TxFunc_Putc(unsigned char c)
 * Output         : 
 * Return         : 
 *******************************************************************************/
-unsigned char RFID_GATRM310_TxFunc_Getc(void)
+unsigned char RFID_TxBuffer(void)
 { 
-	unsigned char result=0; 
+  unsigned char result=0; 
   
-	if(RFID_GATRM310_TxEndPoint != RFID_GATRM310_TxStartPoint)
-      { 
+  if(RFID_GATRM310_TxEndPoint != RFID_GATRM310_TxStartPoint)
+  { 
       result = *RFID_GATRM310_TxStartPoint; 
       RFID_GATRM310_TxStartPoint = RFID_GATRM310_TxFunc_NextPt(RFID_GATRM310_TxStartPoint) ;
-	  } 
-  
-	return result;
+  } 
+  return result;
 } 
 /*******************************************************************************
 * Function Name  : RFID_GATRM310_GetCard
 * Description    : 是否取得卡片数据
-* Input          : 
-* Output         : 
+* Input          :
+* Output         : 0 Notyet 1 Yes
 * Return         : 
 *******************************************************************************/
-unsigned char RFID_GATRM310_GetCard(void)
+unsigned char RFID_GATRM310_GetCard(void)// v5.1-4
 { 
-  if(RFID_UIDStatus.Bits.Find == 1)
-  {
-      RFID_UIDStatus.Bits.Find = 0;
+      return RFID_UIDStatus.Bits.Find;
+}
+
+TXP_UID RFID_GATRM310_GetUID(void)
+{
+	return RFID_UID[0];
+}
+
+/*******************************************************************************
+* Function Name  : RFID_GATRM310_GetOnline
+* Description    : RFID硬件通讯测试
+* Input          : 
+* Output         : 
+* Return         : 0=NotYet 1=Online
+*******************************************************************************/
+unsigned char RFID_GATRM310_GetOnline(void)
+{
+  return RFID_Flag.Bit.RFID_Online;
+}
+/*******************************************************************************
+* Function Name  : RFID_GATRM310_CheckTagType
+* Description    : 判断是否有支持对应 Tag type
+* Input          : 
+* Output         : 
+* Return         : 0=NO 1=Yes
+*******************************************************************************/
+unsigned char RFID_GATRM310_CheckTagType(void)
+{
+  //if(_TagType == ISO14443A)
       return 1;
-  }
+  //else 
+  //    return 0;
+  /*    
+  switch(_TagType)    
+  {
+      case LEGIC:      //LEGIC RF standard
+      case ISO15693:   //ISO 15693
+      case ISO14443A:  //ISO 14443 A
+      case ISO14433B:  //ISO 14443 B
+      case INSIDE:     //INSIDE Secure
+      case SONY_FeliCa://SONY FeliCa subset  
+           return 1;     
+  }  
   return 0;
+  */    
+}
+
+void RFID_GATRM310_Set_HWFlag(unsigned char by_Flag)
+{
+	if(by_Flag == 0)
+		RFID_Flag.Bit.RFID_HW_InitialOK = 0;
+	else
+		RFID_Flag.Bit.RFID_HW_InitialOK = 1;
+}
+
+unsigned char RFID_TXE_Status(unsigned char by_D)
+{
+	if(by_D == 0)
+  	{
+          RFID_Flag.Bit.TX_Switch = 0;
+  	}
+  	return RFID_Flag.Bit.TX_Switch;
 }
 
 //------------------------------------------------------------------------------

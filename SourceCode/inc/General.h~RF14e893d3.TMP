@@ -462,7 +462,7 @@ extern const unsigned char Boot_Version[20] ;
 //=================================================================
 // HR
 //=================================================================
-#define IO_HeartRateSignal()  HAL_GPIO_ReadPin(GPIOE,GPIO_PIN_3)
+#define IO_HeartRateSignal()  HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_8)
 //=================================================================
 // Safe Key
 //=================================================================
